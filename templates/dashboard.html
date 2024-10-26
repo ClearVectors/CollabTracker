@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>Active Collaborations</h2>
+        <div class="row" id="collaborationsGrid">
+            {% for collab in collaborations %}
+            <div class="col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ collab.title }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ collab.company.name }}</h6>
+                        <p class="card-text">{{ collab.description }}</p>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" role="progressbar" style="width: {{ collab.kpi_satisfaction * 10 }}%">
+                                Satisfaction: {{ collab.kpi_satisfaction }}/10
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <h2>Quick Actions</h2>
+        <div class="d-grid gap-2">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newCompanyModal">
+                Add New Company
+            </button>
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#newCollaborationModal">
+                Add New Collaboration
+            </button>
+        </div>
+        
+        <h3 class="mt-4">Companies</h3>
+        <div class="list-group">
+            {% for company in companies %}
+            <a href="{{ url_for('company_detail', id=company.id) }}" class="list-group-item list-group-item-action">
+                {{ company.name }}
+                <span class="badge bg-secondary float-end">{{ company.industry }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+{% include 'company_form.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

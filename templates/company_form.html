@@ -1,0 +1,91 @@
+<!-- Modal for adding new company -->
+<div class="modal fade" id="newCompanyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Company</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form action="{{ url_for('new_company') }}" method="POST">
+                    <div class="mb-3">
+                        <label for="companyName" class="form-label">Company Name</label>
+                        <input type="text" class="form-control" id="companyName" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="industry" class="form-label">Industry</label>
+                        <input type="text" class="form-control" id="industry" name="industry" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Contact Email</label>
+                        <input type="email" class="form-control" id="email" name="contact_email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Contact Phone</label>
+                        <input type="tel" class="form-control" id="phone" name="contact_phone">
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Company</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for adding new collaboration -->
+<div class="modal fade" id="newCollaborationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Collaboration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="collaborationForm">
+                    <div class="mb-3">
+                        <label for="companySelect" class="form-label">Company</label>
+                        <select class="form-select" id="companySelect" name="company_id" required>
+                            {% for company in companies %}
+                            <option value="{{ company.id }}">{{ company.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="Active">Active</option>
+                            <option value="Completed">Completed</option>
+                            <option value="On Hold">On Hold</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="startDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="startDate" name="start_date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="kpiRevenue" class="form-label">Expected Revenue ($)</label>
+                        <input type="number" class="form-control" id="kpiRevenue" name="kpi_revenue" step="1000">
+                    </div>
+                    <div class="mb-3">
+                        <label for="kpiSatisfaction" class="form-label">Satisfaction Score (1-10)</label>
+                        <input type="number" class="form-control" id="kpiSatisfaction" name="kpi_satisfaction" min="1" max="10" required>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Collaboration</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
