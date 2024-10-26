@@ -10,6 +10,7 @@ class Company(db.Model):
     logo_url = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     collaborations = db.relationship('Collaboration', backref='company', lazy=True)
+    opportunities = db.relationship('Opportunity', backref='company', lazy=True)
 
 class Collaboration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -22,3 +23,15 @@ class Collaboration(db.Model):
     kpi_revenue = db.Column(db.Float)
     kpi_satisfaction = db.Column(db.Integer)  # 1-10 scale
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Opportunity(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    stage = db.Column(db.String(50), nullable=False)  # Lead, Meeting, Proposal, Negotiation, Closed
+    expected_revenue = db.Column(db.Float)
+    probability = db.Column(db.Integer)  # 0-100%
+    next_meeting_date = db.Column(db.Date)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

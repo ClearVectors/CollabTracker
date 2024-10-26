@@ -22,6 +22,29 @@
             </div>
             {% endfor %}
         </div>
+
+        <h2 class="mt-4">Top Opportunities</h2>
+        <div class="row">
+            {% for opp in opportunities %}
+            <div class="col-md-6 mb-3">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ opp.title }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ opp.company.name }}</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-primary">{{ opp.stage }}</span>
+                            <span class="badge bg-success">${{ "{:,.0f}".format(opp.expected_revenue) }}</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: {{ opp.probability }}%">
+                                {{ opp.probability }}% Probability
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
     
     <div class="col-md-4">
@@ -33,6 +56,7 @@
             <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#newCollaborationModal">
                 Add New Collaboration
             </button>
+            <a href="{{ url_for('pipeline') }}" class="btn btn-info">View Pipeline</a>
         </div>
         
         <h3 class="mt-4">Companies</h3>
