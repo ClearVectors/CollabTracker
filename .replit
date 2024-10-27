@@ -13,7 +13,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Flask Web App"
+args = "Flask Server"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
@@ -24,7 +24,7 @@ task = "workflow.run"
 args = "Flask Server"
 
 [[workflows.workflow]]
-name = "Flask Web App"
+name = "Flask Server"
 author = "agent"
 
 [workflows.workflow.metadata]
@@ -33,7 +33,7 @@ agentRequireRestartOnSave = false
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python main.py"
-waitForPort = 5000
+waitForPort = 5001
 
 [[workflows.workflow]]
 name = "Seed Opportunities"
@@ -64,3 +64,7 @@ run = ["sh", "-c", "python main.py"]
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3000
