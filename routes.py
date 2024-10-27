@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, redirect, url_for, send_from_directory, flash, send_file, Response
+from flask import render_template, request, jsonify, redirect, url_for, send_from_directory, flash, send_file
 from werkzeug.utils import secure_filename
 from app import app, db
 from models import Company, Collaboration, Opportunity, Document
@@ -9,7 +9,6 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill
 from io import BytesIO
 import logging
-import traceback
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -31,146 +30,122 @@ def dashboard():
 
 @app.route('/export/data')
 def export_data():
-    excel_data = None
+    """Export all data to Excel format"""
+    excel_buffer = None
     try:
-        # Verify database connection
-        try:
-            db.session.execute('SELECT 1')
-        except exc.SQLAlchemyError as e:
-            logger.error(f"Database connection error: {str(e)}")
-            return jsonify({'error': 'Database connection failed'}), 500
-
-        # Create workbook and styles
+        # Create workbook
         wb = openpyxl.Workbook()
+        
+        # Define styles
         header_style = Font(bold=True, color="FFFFFF")
         header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
-
+        
         # Companies Sheet
-        try:
-            ws_companies = wb.active
-            ws_companies.title = "Companies"
-            headers = ["Company ID", "Name", "Industry", "Contact Email", "Contact Phone"]
-            ws_companies.append(headers)
-            
-            for cell in ws_companies[1]:
-                cell.font = header_style
-                cell.fill = header_fill
-
-            companies = Company.query.all()
-            if not companies:
-                logger.warning("No companies found in database")
-            
-            for company in companies:
-                ws_companies.append([
-                    company.id,
-                    company.name,
-                    company.industry,
-                    company.contact_email,
-                    company.contact_phone
-                ])
-        except exc.SQLAlchemyError as e:
-            logger.error(f"Error querying companies: {str(e)}")
-            raise
-        except Exception as e:
-            logger.error(f"Error processing companies data: {str(e)}")
-            raise
-
+        ws_companies = wb.active
+        ws_companies.title = "Companies"
+        company_headers = ["Company ID", "Name", "Industry", "Contact Email", "Contact Phone"]
+        ws_companies.append(company_headers)
+        
+        # Style headers
+        for cell in ws_companies[1]:
+            cell.font = header_style
+            cell.fill = header_fill
+        
+        # Add company data
+        companies = Company.query.all()
+        for company in companies:
+            ws_companies.append([
+                company.id,
+                company.name,
+                company.industry,
+                company.contact_email,
+                company.contact_phone
+            ])
+        
         # Collaborations Sheet
-        try:
-            ws_collabs = wb.create_sheet("Collaborations")
-            headers = ["Collaboration ID", "Company", "Title", "Status", "Start Date", "End Date", "Revenue", "Satisfaction"]
-            ws_collabs.append(headers)
-            
-            for cell in ws_collabs[1]:
-                cell.font = header_style
-                cell.fill = header_fill
-
-            collaborations = Collaboration.query.all()
-            if not collaborations:
-                logger.warning("No collaborations found in database")
-            
-            for collab in collaborations:
-                ws_collabs.append([
-                    collab.id,
-                    collab.company.name,
-                    collab.title,
-                    collab.status,
-                    collab.start_date.strftime('%Y-%m-%d') if collab.start_date else '',
-                    collab.end_date.strftime('%Y-%m-%d') if collab.end_date else '',
-                    f"${collab.kpi_revenue:,.2f}",
-                    collab.kpi_satisfaction
-                ])
-        except exc.SQLAlchemyError as e:
-            logger.error(f"Error querying collaborations: {str(e)}")
-            raise
-        except Exception as e:
-            logger.error(f"Error processing collaborations data: {str(e)}")
-            raise
-
+        ws_collabs = wb.create_sheet("Collaborations")
+        collab_headers = ["Collaboration ID", "Company", "Title", "Status", "Start Date", "End Date", "Revenue", "Satisfaction"]
+        ws_collabs.append(collab_headers)
+        
+        # Style headers
+        for cell in ws_collabs[1]:
+            cell.font = header_style
+            cell.fill = header_fill
+        
+        # Add collaboration data
+        collaborations = Collaboration.query.all()
+        for collab in collaborations:
+            ws_collabs.append([
+                collab.id,
+                collab.company.name,
+                collab.title,
+                collab.status,
+                collab.start_date.strftime('%Y-%m-%d') if collab.start_date else '',
+                collab.end_date.strftime('%Y-%m-%d') if collab.end_date else '',
+                f"${collab.kpi_revenue:,.2f}",
+                collab.kpi_satisfaction
+            ])
+        
         # Opportunities Sheet
-        try:
-            ws_opps = wb.create_sheet("Opportunities")
-            headers = ["Opportunity ID", "Company", "Title", "Stage", "Expected Revenue", "Probability", "Next Meeting"]
-            ws_opps.append(headers)
-            
-            for cell in ws_opps[1]:
-                cell.font = header_style
-                cell.fill = header_fill
-
-            opportunities = Opportunity.query.all()
-            if not opportunities:
-                logger.warning("No opportunities found in database")
-            
-            for opp in opportunities:
-                ws_opps.append([
-                    opp.id,
-                    opp.company.name,
-                    opp.title,
-                    opp.stage,
-                    f"${opp.expected_revenue:,.2f}",
-                    f"{opp.probability}%",
-                    opp.next_meeting_date.strftime('%Y-%m-%d') if opp.next_meeting_date else ''
-                ])
-        except exc.SQLAlchemyError as e:
-            logger.error(f"Error querying opportunities: {str(e)}")
-            raise
-        except Exception as e:
-            logger.error(f"Error processing opportunities data: {str(e)}")
-            raise
-
+        ws_opps = wb.create_sheet("Opportunities")
+        opp_headers = ["Opportunity ID", "Company", "Title", "Stage", "Expected Revenue", "Probability", "Next Meeting"]
+        ws_opps.append(opp_headers)
+        
+        # Style headers
+        for cell in ws_opps[1]:
+            cell.font = header_style
+            cell.fill = header_fill
+        
+        # Add opportunity data
+        opportunities = Opportunity.query.all()
+        for opp in opportunities:
+            ws_opps.append([
+                opp.id,
+                opp.company.name,
+                opp.title,
+                opp.stage,
+                f"${opp.expected_revenue:,.2f}",
+                f"{opp.probability}%",
+                opp.next_meeting_date.strftime('%Y-%m-%d') if opp.next_meeting_date else ''
+            ])
+        
         # Auto-adjust column widths
         for worksheet in [ws_companies, ws_collabs, ws_opps]:
             for column_cells in worksheet.columns:
                 length = max(len(str(cell.value or "")) for cell in column_cells)
-                col = openpyxl.utils.get_column_letter(column_cells[0].column)
-                worksheet.column_dimensions[col].width = min(length + 2, 50)
-
+                col_letter = openpyxl.utils.get_column_letter(column_cells[0].column)
+                worksheet.column_dimensions[col_letter].width = min(length + 2, 50)
+        
         # Save to BytesIO
-        excel_data = BytesIO()
-        wb.save(excel_data)
-        excel_data.seek(0)
-
-        # Set filename with timestamp
+        excel_buffer = BytesIO()
+        wb.save(excel_buffer)
+        excel_buffer.seek(0)
+        
+        # Generate filename with timestamp
         filename = f'collaboration_data_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
         
-        return Response(
-            excel_data.getvalue(),
+        # Return file
+        return send_file(
+            excel_buffer,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            headers={
-                'Content-Disposition': f'attachment; filename={filename}',
-                'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            }
+            as_attachment=True,
+            download_name=filename
         )
-
+        
+    except exc.SQLAlchemyError as e:
+        logger.error(f"Database error in export: {str(e)}")
+        return jsonify({'error': 'Database error occurred'}), 500
     except Exception as e:
-        logger.error(f"Export error: {str(e)}\n{traceback.format_exc()}")
+        logger.error(f"Export error: {str(e)}")
         return jsonify({'error': 'Error generating export file'}), 500
-    
     finally:
-        if excel_data:
-            excel_data.close()
+        if excel_buffer:
+            excel_buffer.close()
 
-# Analytics API endpoints
+@app.route('/analytics')
+def analytics_dashboard():
+    return render_template('analytics.html')
+
 @app.route('/api/analytics/revenue')
 def analytics_revenue():
     try:
@@ -199,9 +174,6 @@ def analytics_revenue():
     except exc.SQLAlchemyError as e:
         logger.error(f"Database error in revenue analytics: {str(e)}")
         return jsonify({'error': 'Database error occurred'}), 500
-    except Exception as e:
-        logger.error(f"Error in revenue analytics: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/analytics/satisfaction')
 def analytics_satisfaction():
@@ -221,9 +193,6 @@ def analytics_satisfaction():
     except exc.SQLAlchemyError as e:
         logger.error(f"Database error in satisfaction analytics: {str(e)}")
         return jsonify({'error': 'Database error occurred'}), 500
-    except Exception as e:
-        logger.error(f"Error in satisfaction analytics: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/analytics/pipeline')
 def analytics_pipeline():
@@ -245,9 +214,6 @@ def analytics_pipeline():
     except exc.SQLAlchemyError as e:
         logger.error(f"Database error in pipeline analytics: {str(e)}")
         return jsonify({'error': 'Database error occurred'}), 500
-    except Exception as e:
-        logger.error(f"Error in pipeline analytics: {str(e)}")
-        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/search')
 def search():
@@ -271,6 +237,16 @@ def search():
     except exc.SQLAlchemyError as e:
         logger.error(f"Database error in search: {str(e)}")
         return jsonify({'error': 'Database error occurred'}), 500
+
+@app.route('/pipeline')
+def pipeline():
+    try:
+        companies = Company.query.all()
+        opportunities = Opportunity.query.all()
+        return render_template('pipeline.html', companies=companies, opportunities=opportunities)
+    except exc.SQLAlchemyError as e:
+        logger.error(f"Database error in pipeline: {str(e)}")
+        return "Database error occurred", 500
 
 @app.route('/company/<int:id>')
 def company_detail(id):
@@ -298,17 +274,3 @@ def collaboration_documents(id):
     except exc.SQLAlchemyError as e:
         logger.error(f"Database error in collaboration documents: {str(e)}")
         return "Database error occurred", 500
-
-@app.route('/pipeline')
-def pipeline():
-    try:
-        companies = Company.query.all()
-        opportunities = Opportunity.query.all()
-        return render_template('pipeline.html', companies=companies, opportunities=opportunities)
-    except exc.SQLAlchemyError as e:
-        logger.error(f"Database error in pipeline: {str(e)}")
-        return "Database error occurred", 500
-
-@app.route('/analytics')
-def analytics_dashboard():
-    return render_template('analytics.html')
