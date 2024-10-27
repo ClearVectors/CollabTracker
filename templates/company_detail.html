@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2>{{ company.name }}</h2>
+            <p class="text-muted">{{ company.industry }}</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('company_documents', id=company.id) }}" class="btn btn-primary">
+                Manage Documents
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Contact Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Email:</strong> {{ company.contact_email }}</p>
+                    <p><strong>Phone:</strong> {{ company.contact_phone }}</p>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Recent Documents</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for doc in company.documents[:5] %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ doc.title }}</h6>
+                                    <small class="text-muted">{{ doc.upload_date.strftime('%Y-%m-%d') }}</small>
+                                </div>
+                                <a href="{{ url_for('download_document', id=doc.id) }}" class="btn btn-sm btn-secondary">
+                                    Download
+                                </a>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No documents uploaded yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Active Collaborations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for collab in company.collaborations if collab.status == 'Active' %}
+                        <div class="list-group-item">
+                            <h6 class="mb-1">{{ collab.title }}</h6>
+                            <p class="mb-1">{{ collab.description }}</p>
+                            <small class="text-muted">Started: {{ collab.start_date.strftime('%Y-%m-%d') }}</small>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No active collaborations.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Pipeline Opportunities</h5>
+                </div>
+                <div class="card-body">
+                    <div class="list-group">
+                        {% for opp in company.opportunities %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">{{ opp.title }}</h6>
+                                    <small class="text-muted">Stage: {{ opp.stage }}</small>
+                                </div>
+                                <span class="badge bg-success">${{ "{:,.0f}".format(opp.expected_revenue) }}</span>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted">No opportunities in pipeline.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

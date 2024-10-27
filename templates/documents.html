@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            {% if company %}
+            Documents for {{ company.name }}
+            {% elif collaboration %}
+            Documents for {{ collaboration.title }}
+            {% endif %}
+        </h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadDocumentModal">
+            Upload Document
+        </button>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>File Type</th>
+                    <th>Version</th>
+                    <th>Upload Date</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if company %}
+                    {% for doc in company.documents %}
+                    <tr>
+                        <td>{{ doc.title }}</td>
+                        <td>{{ doc.file_type }}</td>
+                        <td>{{ doc.version }}</td>
+                        <td>{{ doc.upload_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ doc.description }}</td>
+                        <td>
+                            <a href="{{ url_for('download_document', id=doc.id) }}" class="btn btn-sm btn-secondary">
+                                Download
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% elif collaboration %}
+                    {% for doc in collaboration.documents %}
+                    <tr>
+                        <td>{{ doc.title }}</td>
+                        <td>{{ doc.file_type }}</td>
+                        <td>{{ doc.version }}</td>
+                        <td>{{ doc.upload_date.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ doc.description }}</td>
+                        <td>
+                            <a href="{{ url_for('download_document', id=doc.id) }}" class="btn btn-sm btn-secondary">
+                                Download
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Upload Document Modal -->
+<div class="modal fade" id="uploadDocumentModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="documentForm" enctype="multipart/form-data">
+                    <input type="hidden" name="company_id" value="{{ company.id if company else '' }}">
+                    <input type="hidden" name="collaboration_id" value="{{ collaboration.id if collaboration else '' }}">
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Document Title</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="file" class="form-label">File</label>
+                        <input type="file" class="form-control" id="file" name="file" required>
+                        <div class="form-text">Allowed file types: PDF, DOC, DOCX, TXT, RTF</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="version" class="form-label">Version</label>
+                        <input type="text" class="form-control" id="version" name="version" placeholder="1.0">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const documentForm = document.getElementById('documentForm');
+    
+    if (documentForm) {
+        documentForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(documentForm);
+            
+            try {
+                const response = await fetch('/document/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error uploading document: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

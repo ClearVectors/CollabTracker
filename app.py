@@ -17,6 +17,10 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_pre_ping": True,
 }
 
+# Configure upload folder
+app.config['UPLOAD_FOLDER'] = os.path.join('static', 'documents')
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
 db.init_app(app)
 
 with app.app_context():

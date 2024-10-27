@@ -1,9 +1,15 @@
-from flask import render_template, request, jsonify, redirect, url_for
+from flask import render_template, request, jsonify, redirect, url_for, send_from_directory, flash
+from werkzeug.utils import secure_filename
 from app import app, db
-from models import Company, Collaboration, Opportunity
+from models import Company, Collaboration, Opportunity, Document
 from datetime import datetime
 from sqlalchemy import or_, func
-import json
+import os
+import magic
+
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'rtf'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
 def dashboard():
@@ -103,20 +109,69 @@ def search():
         'industry': c.industry
     } for c in companies])
 
-# New Analytics Routes
+@app.route('/document/upload', methods=['POST'])
+def upload_document():
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file provided'})
+        
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'})
+        
+        if not allowed_file(file.filename):
+            return jsonify({'success': False, 'error': 'Invalid file type'})
+        
+        filename = secure_filename(file.filename)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(file_path)
+        
+        mime = magic.Magic()
+        file_type = mime.from_file(file_path)
+        
+        document = Document(
+            title=request.form.get('title', filename),
+            filename=filename,
+            file_type=file_type,
+            company_id=request.form['company_id'],
+            collaboration_id=request.form.get('collaboration_id'),
+            description=request.form.get('description'),
+            version=request.form.get('version', '1.0')
+        )
+        
+        db.session.add(document)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'document_id': document.id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/document/<int:id>/download')
+def download_document(id):
+    document = Document.query.get_or_404(id)
+    return send_from_directory(app.config['UPLOAD_FOLDER'], document.filename)
+
+@app.route('/company/<int:id>/documents')
+def company_documents(id):
+    company = Company.query.get_or_404(id)
+    return render_template('documents.html', company=company)
+
+@app.route('/collaboration/<int:id>/documents')
+def collaboration_documents(id):
+    collaboration = Collaboration.query.get_or_404(id)
+    return render_template('documents.html', collaboration=collaboration)
+
 @app.route('/analytics')
 def analytics_dashboard():
     return render_template('analytics.html')
 
 @app.route('/api/analytics/revenue')
 def revenue_analytics():
-    # Get total expected revenue by stage
     stage_revenue = db.session.query(
         Opportunity.stage,
         func.sum(Opportunity.expected_revenue * Opportunity.probability / 100).label('weighted_revenue')
     ).group_by(Opportunity.stage).all()
     
-    # Get collaboration revenue by status
     collab_revenue = db.session.query(
         Collaboration.status,
         func.sum(Collaboration.kpi_revenue).label('total_revenue')
@@ -135,7 +190,6 @@ def revenue_analytics():
 
 @app.route('/api/analytics/satisfaction')
 def satisfaction_analytics():
-    # Get average satisfaction scores by company
     satisfaction_scores = db.session.query(
         Company.name,
         func.avg(Collaboration.kpi_satisfaction).label('avg_satisfaction')
@@ -148,7 +202,6 @@ def satisfaction_analytics():
 
 @app.route('/api/analytics/pipeline')
 def pipeline_analytics():
-    # Get opportunity counts and total value by stage
     pipeline_stats = db.session.query(
         Opportunity.stage,
         func.count(Opportunity.id).label('count'),

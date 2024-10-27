@@ -11,6 +11,7 @@ class Company(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     collaborations = db.relationship('Collaboration', backref='company', lazy=True)
     opportunities = db.relationship('Opportunity', backref='company', lazy=True)
+    documents = db.relationship('Document', backref='company', lazy=True)
 
 class Collaboration(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -23,6 +24,7 @@ class Collaboration(db.Model):
     kpi_revenue = db.Column(db.Float)
     kpi_satisfaction = db.Column(db.Integer)  # 1-10 scale
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    documents = db.relationship('Document', backref='collaboration', lazy=True)
 
 class Opportunity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -35,3 +37,14 @@ class Opportunity(db.Model):
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Document(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    file_type = db.Column(db.String(100))
+    upload_date = db.Column(db.DateTime, default=datetime.utcnow)
+    company_id = db.Column(db.Integer, db.ForeignKey('company.id'), nullable=False)
+    collaboration_id = db.Column(db.Integer, db.ForeignKey('collaboration.id'))
+    description = db.Column(db.Text)
+    version = db.Column(db.String(50))
