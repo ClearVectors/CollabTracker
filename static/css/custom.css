@@ -23,3 +23,29 @@
     height: 64px;
     object-fit: contain;
 }
+
+/* Pipeline drag and drop styles */
+.pipeline-stage {
+    min-height: 200px;
+    padding: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+.opportunity-card {
+    cursor: move;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.opportunity-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.opportunity-card.dragging {
+    opacity: 0.5;
+}
+
+.pipeline-stage.drag-over {
+    background-color: var(--bs-gray-800);
+    border: 2px dashed var(--bs-primary);
+}

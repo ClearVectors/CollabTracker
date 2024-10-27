@@ -19,6 +19,10 @@ args = "Flask Web App"
 task = "workflow.run"
 args = "Seed Opportunities"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Flask Server"
+
 [[workflows.workflow]]
 name = "Flask Web App"
 author = "agent"
@@ -41,6 +45,18 @@ agentRequireRestartOnSave = false
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "python3 -c 'from app import app; from seed_opportunities import seed_opportunities; app.app_context().push(); seed_opportunities()'"
+
+[[workflows.workflow]]
+name = "Flask Server"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python main.py"
+waitForPort = 5000
 
 [deployment]
 run = ["sh", "-c", "python main.py"]

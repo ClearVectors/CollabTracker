@@ -18,7 +18,9 @@
                 </div>
                 <div class="card-body pipeline-stage" data-stage="{{ stage }}">
                     {% for opp in opportunities if opp.stage == stage %}
-                    <div class="card mb-2 opportunity-card" data-id="{{ opp.id }}">
+                    <div class="card mb-2 opportunity-card" data-id="{{ opp.id }}"
+                         data-notes="{{ opp.notes }}"
+                         {% if opp.next_meeting_date %}data-next-meeting="{{ opp.next_meeting_date.strftime('%Y-%m-%d') }}"{% endif %}>
                         <div class="card-body">
                             <h6 class="card-title">{{ opp.title }}</h6>
                             <p class="card-text">{{ opp.company.name }}</p>
@@ -101,32 +103,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const opportunityForm = document.getElementById('opportunityForm');
-    
-    if (opportunityForm) {
-        opportunityForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(opportunityForm);
-            
-            try {
-                const response = await fetch('/opportunity/new', {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await response.json();
-                
-                if (data.success) {
-                    window.location.reload();
-                } else {
-                    alert('Error creating opportunity: ' + data.error);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        });
-    }
-});
-</script>
+<script src="{{ url_for('static', filename='js/pipeline.js') }}"></script>
 {% endblock %}
