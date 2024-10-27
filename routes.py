@@ -7,6 +7,9 @@ from sqlalchemy import or_, func
 import os
 import magic
 from predictive_analytics import get_predictive_analytics
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'rtf'}
@@ -219,3 +222,92 @@ def pipeline_analytics():
 def predictions_analytics():
     predictions = get_predictive_analytics()
     return jsonify(predictions)
+
+@app.route('/export-report')
+def export_report():
+    try:
+        # Create a new workbook
+        wb = Workbook()
+        
+        # Pipeline Revenue Sheet
+        ws_pipeline = wb.active
+        ws_pipeline.title = "Pipeline Revenue"
+        ws_pipeline['A1'] = "Pipeline Revenue by Stage"
+        ws_pipeline['A1'].font = Font(bold=True, size=14)
+        ws_pipeline['A2'] = "Stage"
+        ws_pipeline['B2'] = "Weighted Revenue ($)"
+        
+        stage_revenue = db.session.query(
+            Opportunity.stage,
+            func.sum(Opportunity.expected_revenue * Opportunity.probability / 100)
+        ).group_by(Opportunity.stage).all()
+        
+        for i, (stage, revenue) in enumerate(stage_revenue, start=3):
+            ws_pipeline[f'A{i}'] = stage
+            ws_pipeline[f'B{i}'] = float(revenue or 0)
+        
+        # Collaboration Revenue Sheet
+        ws_collab = wb.create_sheet("Collaboration Revenue")
+        ws_collab['A1'] = "Collaboration Revenue by Status"
+        ws_collab['A1'].font = Font(bold=True, size=14)
+        ws_collab['A2'] = "Status"
+        ws_collab['B2'] = "Total Revenue ($)"
+        
+        collab_revenue = db.session.query(
+            Collaboration.status,
+            func.sum(Collaboration.kpi_revenue)
+        ).group_by(Collaboration.status).all()
+        
+        for i, (status, revenue) in enumerate(collab_revenue, start=3):
+            ws_collab[f'A{i}'] = status
+            ws_collab[f'B{i}'] = float(revenue or 0)
+        
+        # Partner Satisfaction Sheet
+        ws_satisfaction = wb.create_sheet("Partner Satisfaction")
+        ws_satisfaction['A1'] = "Partner Satisfaction Scores"
+        ws_satisfaction['A1'].font = Font(bold=True, size=14)
+        ws_satisfaction['A2'] = "Company"
+        ws_satisfaction['B2'] = "Average Satisfaction (1-10)"
+        
+        satisfaction_scores = db.session.query(
+            Company.name,
+            func.avg(Collaboration.kpi_satisfaction)
+        ).join(Collaboration).group_by(Company.name).all()
+        
+        for i, (company, score) in enumerate(satisfaction_scores, start=3):
+            ws_satisfaction[f'A{i}'] = company
+            ws_satisfaction[f'B{i}'] = float(score or 0)
+        
+        # Predictive Analytics Sheet
+        ws_predictions = wb.create_sheet("Success Predictions")
+        ws_predictions['A1'] = "Opportunity Success Predictions"
+        ws_predictions['A1'].font = Font(bold=True, size=14)
+        ws_predictions['A2'] = "Opportunity"
+        ws_predictions['B2'] = "Company"
+        ws_predictions['C2'] = "Stage"
+        ws_predictions['D2'] = "Expected Revenue ($)"
+        ws_predictions['E2'] = "Predicted Success Rate (%)"
+        
+        predictions = get_predictive_analytics()
+        
+        for i, pred in enumerate(predictions, start=3):
+            ws_predictions[f'A{i}'] = pred['title']
+            ws_predictions[f'B{i}'] = pred['company']
+            ws_predictions[f'C{i}'] = pred['stage']
+            ws_predictions[f'D{i}'] = pred['expected_revenue']
+            ws_predictions[f'E{i}'] = pred['success_rate']
+        
+        # Save to BytesIO
+        excel_file = BytesIO()
+        wb.save(excel_file)
+        excel_file.seek(0)
+        
+        return send_file(
+            excel_file,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='collaboration_analytics_report.xlsx'
+        )
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
