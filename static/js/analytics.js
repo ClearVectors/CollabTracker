@@ -202,3 +202,31 @@ async function exportReport() {
         alert('Failed to export report. Please try again.');
     }
 }
+
+// Export executive report functionality
+async function exportExecutiveReport() {
+    try {
+        const format = window.confirm('Click OK for PDF format, or Cancel for Excel format') ? 'pdf' : 'excel';
+        const response = await fetch(`/export-executive-report?format=${format}`, {
+            method: 'GET',
+            headers: {
+                'Accept': format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            }
+        });
+        
+        if (!response.ok) throw new Error('Export failed');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = `executive_report.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('Failed to export executive report. Please try again.');
+    }
+}
