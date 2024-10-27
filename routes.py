@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, redirect, url_for, send_from_directory, flash
+from flask import render_template, request, jsonify, redirect, url_for, send_from_directory, flash, send_file
 from werkzeug.utils import secure_filename
 from app import app, db
 from models import Company, Collaboration, Opportunity, Document
@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import or_, func
 import os
 import magic
+from predictive_analytics import get_predictive_analytics
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'rtf'}
@@ -213,3 +214,8 @@ def pipeline_analytics():
         'count': int(stat[1]),
         'total_value': float(stat[2] or 0)
     } for stat in pipeline_stats])
+
+@app.route('/api/analytics/predictions')
+def predictions_analytics():
+    predictions = get_predictive_analytics()
+    return jsonify(predictions)

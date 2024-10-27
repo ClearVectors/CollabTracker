@@ -4,10 +4,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
 
     // Fetch analytics data
-    const [revenueData, satisfactionData, pipelineData] = await Promise.all([
+    const [revenueData, satisfactionData, pipelineData, predictionsData] = await Promise.all([
         fetch('/api/analytics/revenue').then(r => r.json()),
         fetch('/api/analytics/satisfaction').then(r => r.json()),
-        fetch('/api/analytics/pipeline').then(r => r.json())
+        fetch('/api/analytics/pipeline').then(r => r.json()),
+        fetch('/api/analytics/predictions').then(r => r.json())
     ]);
 
     // Pipeline Revenue Chart
@@ -124,4 +125,80 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
     });
+
+    // Predictive Analytics Chart
+    new Chart(document.getElementById('predictiveAnalyticsChart'), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Opportunities',
+                data: predictionsData.map(p => ({
+                    x: p.expected_revenue,
+                    y: p.success_rate,
+                    label: p.title
+                })),
+                backgroundColor: 'rgba(54, 162, 235, 0.7)'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Success Rate vs Expected Revenue'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            const point = context.raw;
+                            return `${point.label}: ${point.y}% success rate, $${point.x.toLocaleString()} revenue`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom',
+                    title: {
+                        display: true,
+                        text: 'Expected Revenue ($)'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Predicted Success Rate (%)'
+                    }
+                }
+            }
+        }
+    });
 });
+
+// Export report functionality
+async function exportReport() {
+    try {
+        const response = await fetch('/export-report', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            }
+        });
+        
+        if (!response.ok) throw new Error('Export failed');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = 'collaboration_analytics_report.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('Failed to export report. Please try again.');
+    }
+}
