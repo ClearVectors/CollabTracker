@@ -1,9 +1,10 @@
 from flask import render_template, request, jsonify, redirect, url_for, send_from_directory, flash
 from werkzeug.utils import secure_filename
-from app import app, db
+from app import app, db, logger
 from models import Company, Collaboration, Opportunity, Document
 from datetime import datetime
-from sqlalchemy import or_, func
+from sqlalchemy import or_, func, text
+from sqlalchemy.exc import SQLAlchemyError
 import os
 import magic
 
@@ -11,34 +12,51 @@ def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'rtf'}
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def handle_database_error(error, operation):
+    """Handle database errors and return appropriate response"""
+    logger.error(f"Database error during {operation}: {str(error)}")
+    return jsonify({
+        'error': 'Database operation failed',
+        'message': 'An error occurred while fetching data'
+    }), 500
+
 @app.route('/')
 def dashboard():
-    companies = Company.query.all()
-    active_collaborations = Collaboration.query.filter_by(status='Active').all()
-    opportunities = Opportunity.query.order_by(Opportunity.probability.desc()).limit(5).all()
-    return render_template('dashboard.html', 
-                         companies=companies, 
-                         collaborations=active_collaborations,
-                         opportunities=opportunities)
+    try:
+        companies = Company.query.all()
+        active_collaborations = Collaboration.query.filter_by(status='Active').all()
+        opportunities = Opportunity.query.order_by(Opportunity.probability.desc()).limit(5).all()
+        return render_template('dashboard.html', 
+                             companies=companies, 
+                             collaborations=active_collaborations,
+                             opportunities=opportunities)
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'dashboard view')
 
 @app.route('/company/new', methods=['GET', 'POST'])
 def new_company():
     if request.method == 'POST':
-        company = Company(
-            name=request.form['name'],
-            industry=request.form['industry'],
-            contact_email=request.form['contact_email'],
-            contact_phone=request.form['contact_phone'],
-        )
-        db.session.add(company)
-        db.session.commit()
-        return redirect(url_for('dashboard'))
+        try:
+            company = Company(
+                name=request.form['name'],
+                industry=request.form['industry'],
+                contact_email=request.form['contact_email'],
+                contact_phone=request.form['contact_phone'],
+            )
+            db.session.add(company)
+            db.session.commit()
+            return redirect(url_for('dashboard'))
+        except SQLAlchemyError as e:
+            return handle_database_error(e, 'company creation')
     return render_template('company_form.html')
 
 @app.route('/company/<int:id>')
 def company_detail(id):
-    company = Company.query.get_or_404(id)
-    return render_template('company_detail.html', company=company)
+    try:
+        company = Company.query.get_or_404(id)
+        return render_template('company_detail.html', company=company)
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'company detail view')
 
 @app.route('/collaboration/new', methods=['POST'])
 def new_collaboration():
@@ -55,8 +73,8 @@ def new_collaboration():
         db.session.add(collab)
         db.session.commit()
         return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'collaboration creation')
 
 @app.route('/opportunity/new', methods=['POST'])
 def new_opportunity():
@@ -73,8 +91,8 @@ def new_opportunity():
         db.session.add(opportunity)
         db.session.commit()
         return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'opportunity creation')
 
 @app.route('/opportunity/<int:id>/update', methods=['POST'])
 def update_opportunity(id):
@@ -86,28 +104,34 @@ def update_opportunity(id):
         opportunity.notes = request.form['notes']
         db.session.commit()
         return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'opportunity update')
 
 @app.route('/pipeline')
 def pipeline():
-    opportunities = Opportunity.query.order_by(Opportunity.stage, Opportunity.probability.desc()).all()
-    return render_template('pipeline.html', opportunities=opportunities)
+    try:
+        opportunities = Opportunity.query.order_by(Opportunity.stage, Opportunity.probability.desc()).all()
+        return render_template('pipeline.html', opportunities=opportunities)
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'pipeline view')
 
 @app.route('/search')
 def search():
-    query = request.args.get('q', '')
-    companies = Company.query.filter(
-        or_(
-            Company.name.ilike(f'%{query}%'),
-            Company.industry.ilike(f'%{query}%')
-        )
-    ).all()
-    return jsonify([{
-        'id': c.id,
-        'name': c.name,
-        'industry': c.industry
-    } for c in companies])
+    try:
+        query = request.args.get('q', '')
+        companies = Company.query.filter(
+            or_(
+                Company.name.ilike(f'%{query}%'),
+                Company.industry.ilike(f'%{query}%')
+            )
+        ).all()
+        return jsonify([{
+            'id': c.id,
+            'name': c.name,
+            'industry': c.industry
+        } for c in companies])
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'company search')
 
 @app.route('/document/upload', methods=['POST'])
 def upload_document():
@@ -143,23 +167,32 @@ def upload_document():
         db.session.commit()
         
         return jsonify({'success': True, 'document_id': document.id})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'document upload')
 
 @app.route('/document/<int:id>/download')
 def download_document(id):
-    document = Document.query.get_or_404(id)
-    return send_from_directory(app.config['UPLOAD_FOLDER'], document.filename)
+    try:
+        document = Document.query.get_or_404(id)
+        return send_from_directory(app.config['UPLOAD_FOLDER'], document.filename)
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'document download')
 
 @app.route('/company/<int:id>/documents')
 def company_documents(id):
-    company = Company.query.get_or_404(id)
-    return render_template('documents.html', company=company)
+    try:
+        company = Company.query.get_or_404(id)
+        return render_template('documents.html', company=company)
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'company documents view')
 
 @app.route('/collaboration/<int:id>/documents')
 def collaboration_documents(id):
-    collaboration = Collaboration.query.get_or_404(id)
-    return render_template('documents.html', collaboration=collaboration)
+    try:
+        collaboration = Collaboration.query.get_or_404(id)
+        return render_template('documents.html', collaboration=collaboration)
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'collaboration documents view')
 
 @app.route('/analytics')
 def analytics_dashboard():
@@ -167,49 +200,92 @@ def analytics_dashboard():
 
 @app.route('/api/analytics/revenue')
 def revenue_analytics():
-    stage_revenue = db.session.query(
-        Opportunity.stage,
-        func.sum(Opportunity.expected_revenue * Opportunity.probability / 100).label('weighted_revenue')
-    ).group_by(Opportunity.stage).all()
-    
-    collab_revenue = db.session.query(
-        Collaboration.status,
-        func.sum(Collaboration.kpi_revenue).label('total_revenue')
-    ).group_by(Collaboration.status).all()
-    
-    return jsonify({
-        'stage_revenue': [{
-            'stage': sr[0],
-            'weighted_revenue': float(sr[1] or 0)
-        } for sr in stage_revenue],
-        'collab_revenue': [{
-            'status': cr[0],
-            'total_revenue': float(cr[1] or 0)
-        } for cr in collab_revenue]
-    })
+    try:
+        stage_revenue = db.session.execute(
+            text("""
+                SELECT stage,
+                       SUM(expected_revenue * probability / 100) as weighted_revenue
+                FROM opportunity
+                GROUP BY stage
+            """)
+        ).fetchall()
+        
+        collab_revenue = db.session.execute(
+            text("""
+                SELECT status,
+                       SUM(kpi_revenue) as total_revenue
+                FROM collaboration
+                GROUP BY status
+            """)
+        ).fetchall()
+        
+        return jsonify({
+            'stage_revenue': [{
+                'stage': sr[0],
+                'weighted_revenue': float(sr[1] or 0)
+            } for sr in stage_revenue],
+            'collab_revenue': [{
+                'status': cr[0],
+                'total_revenue': float(cr[1] or 0)
+            } for cr in collab_revenue]
+        })
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'revenue analytics')
 
 @app.route('/api/analytics/satisfaction')
 def satisfaction_analytics():
-    satisfaction_scores = db.session.query(
-        Company.name,
-        func.avg(Collaboration.kpi_satisfaction).label('avg_satisfaction')
-    ).join(Collaboration).group_by(Company.name).all()
-    
-    return jsonify([{
-        'company': score[0],
-        'satisfaction': float(score[1] or 0)
-    } for score in satisfaction_scores])
+    try:
+        satisfaction_scores = db.session.execute(
+            text("""
+                SELECT c.name,
+                       AVG(cl.kpi_satisfaction) as avg_satisfaction
+                FROM company c
+                JOIN collaboration cl ON c.id = cl.company_id
+                GROUP BY c.name
+            """)
+        ).fetchall()
+        
+        return jsonify([{
+            'company': score[0],
+            'satisfaction': float(score[1] or 0)
+        } for score in satisfaction_scores])
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'satisfaction analytics')
 
 @app.route('/api/analytics/pipeline')
 def pipeline_analytics():
-    pipeline_stats = db.session.query(
-        Opportunity.stage,
-        func.count(Opportunity.id).label('count'),
-        func.sum(Opportunity.expected_revenue).label('total_value')
-    ).group_by(Opportunity.stage).all()
-    
-    return jsonify([{
-        'stage': stat[0],
-        'count': int(stat[1]),
-        'total_value': float(stat[2] or 0)
-    } for stat in pipeline_stats])
+    try:
+        pipeline_stats = db.session.execute(
+            text("""
+                SELECT stage,
+                       COUNT(*) as count,
+                       SUM(expected_revenue) as total_value
+                FROM opportunity
+                GROUP BY stage
+            """)
+        ).fetchall()
+        
+        return jsonify([{
+            'stage': stat[0],
+            'count': int(stat[1]),
+            'total_value': float(stat[2] or 0)
+        } for stat in pipeline_stats])
+    except SQLAlchemyError as e:
+        return handle_database_error(e, 'pipeline analytics')
+
+@app.errorhandler(SQLAlchemyError)
+def handle_sqlalchemy_error(error):
+    logger.error(f"Database error: {str(error)}")
+    db.session.rollback()
+    return jsonify({
+        'error': 'Database error occurred',
+        'message': 'Please try again later'
+    }), 500
+
+@app.errorhandler(Exception)
+def handle_general_error(error):
+    logger.error(f"Unexpected error: {str(error)}")
+    return jsonify({
+        'error': 'An unexpected error occurred',
+        'message': 'Please try again later'
+    }), 500
