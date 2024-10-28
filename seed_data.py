@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 import random
 import sys
-from app import app, db
-from models import Company, Collaboration
+from app import app, db, logger
+from models import Company, Collaboration, Opportunity, Document
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
 
@@ -21,8 +21,7 @@ companies_data = [
         "contact_email": "enterprise@microsoft.com",
         "contact_phone": "+1 (425) 882-8080",
         "logo_url": "/static/img/default_company.svg"
-    },
-    # Add other companies back...
+    }
 ]
 
 collaboration_titles = [
@@ -30,27 +29,17 @@ collaboration_titles = [
     "Cloud Infrastructure Integration",
     "Data Analytics Platform Development",
     "Quantum Computing Research",
-    "Sustainability Initiative",
-    "Smart Cities Project",
-    "Blockchain Development",
-    "5G Network Implementation",
-    "Cybersecurity Framework",
-    "Edge Computing Solutions",
-    "Digital Transformation Program",
-    "IoT Platform Development",
-    "Machine Learning Research",
-    "AR/VR Technology Partnership",
-    "Green Energy Innovation"
+    "Sustainability Initiative"
 ]
 
 def verify_database_connection():
     try:
-        # Use SQLAlchemy text() construct for raw SQL
         db.session.execute(text('SELECT 1'))
         db.session.commit()
+        logger.info("Database connection verified successfully")
         return True
     except SQLAlchemyError as e:
-        print(f"Database connection error: {e}")
+        logger.error(f"Database connection error: {e}")
         return False
 
 def random_date(start_date, end_date):
@@ -61,18 +50,20 @@ def random_date(start_date, end_date):
 
 def seed_database():
     if not verify_database_connection():
-        print("Failed to connect to database. Aborting.")
+        logger.error("Failed to connect to database. Aborting.")
         sys.exit(1)
 
     try:
-        # Clear existing data
-        print("Clearing existing data...")
+        # Clear existing data in correct order
+        logger.info("Clearing existing data...")
+        Document.query.delete()
+        Opportunity.query.delete()
         Collaboration.query.delete()
         Company.query.delete()
         db.session.commit()
         
         # Add companies
-        print("Adding companies...")
+        logger.info("Adding companies...")
         companies = []
         for company_data in companies_data:
             company = Company()
@@ -82,7 +73,7 @@ def seed_database():
             companies.append(company)
         
         db.session.commit()
-        print(f"Successfully added {len(companies)} companies")
+        logger.info(f"Successfully added {len(companies)} companies")
         
         # Verify companies were added
         company_count = Company.query.count()
@@ -90,10 +81,10 @@ def seed_database():
             raise Exception(f"Company count mismatch. Expected: {len(companies)}, Got: {company_count}")
         
         # Add collaborations
-        print("Adding collaborations...")
+        logger.info("Adding collaborations...")
         statuses = ["Active", "Completed", "On Hold"]
-        start_date = datetime(2022, 10, 26)
-        end_date = datetime(2024, 10, 26)
+        start_date = datetime(2023, 1, 1)
+        end_date = datetime(2024, 12, 31)
         
         collaboration_count = 0
         for company in companies:
@@ -102,6 +93,9 @@ def seed_database():
             
             for _ in range(num_collaborations):
                 available_titles = [t for t in collaboration_titles if t not in used_titles]
+                if not available_titles:
+                    break
+                    
                 title = random.choice(available_titles)
                 used_titles.add(title)
                 
@@ -128,18 +122,18 @@ def seed_database():
         if actual_collab_count != collaboration_count:
             raise Exception(f"Collaboration count mismatch. Expected: {collaboration_count}, Got: {actual_collab_count}")
         
-        print(f"Successfully added {collaboration_count} collaborations")
-        print("\nVerification Summary:")
-        print(f"Companies: {Company.query.count()}")
-        print(f"Collaborations: {Collaboration.query.count()}")
-        print("All data has been successfully persisted!")
+        logger.info(f"Successfully added {collaboration_count} collaborations")
+        logger.info("\nVerification Summary:")
+        logger.info(f"Companies: {Company.query.count()}")
+        logger.info(f"Collaborations: {Collaboration.query.count()}")
+        logger.info("All data has been successfully persisted!")
         
     except SQLAlchemyError as e:
-        print(f"Database error occurred: {e}")
+        logger.error(f"Database error occurred: {e}")
         db.session.rollback()
         sys.exit(1)
     except Exception as e:
-        print(f"Error occurred: {e}")
+        logger.error(f"Error occurred: {e}")
         db.session.rollback()
         sys.exit(1)
 

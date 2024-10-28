@@ -201,76 +201,138 @@ def analytics_dashboard():
 @app.route('/api/analytics/revenue')
 def revenue_analytics():
     try:
+        logger.info("Fetching revenue analytics data")
+        
         stage_revenue = db.session.execute(
             text("""
-                SELECT stage,
-                       SUM(expected_revenue * probability / 100) as weighted_revenue
+                SELECT 
+                    stage,
+                    COALESCE(SUM(CASE 
+                        WHEN expected_revenue IS NOT NULL AND probability IS NOT NULL 
+                        THEN expected_revenue * probability / 100.0
+                        ELSE 0 
+                    END), 0) as weighted_revenue
                 FROM opportunity
                 GROUP BY stage
+                ORDER BY stage
             """)
         ).fetchall()
         
         collab_revenue = db.session.execute(
             text("""
-                SELECT status,
-                       SUM(kpi_revenue) as total_revenue
+                SELECT 
+                    status,
+                    COALESCE(SUM(CASE 
+                        WHEN kpi_revenue IS NOT NULL 
+                        THEN kpi_revenue
+                        ELSE 0 
+                    END), 0) as total_revenue
                 FROM collaboration
                 GROUP BY status
+                ORDER BY status
             """)
         ).fetchall()
         
+        stage_revenue_data = [{
+            'stage': sr[0],
+            'weighted_revenue': float(sr[1] or 0)
+        } for sr in stage_revenue]
+        
+        collab_revenue_data = [{
+            'status': cr[0],
+            'total_revenue': float(cr[1] or 0)
+        } for cr in collab_revenue]
+        
+        logger.info(f"Stage revenue data: {stage_revenue_data}")
+        logger.info(f"Collaboration revenue data: {collab_revenue_data}")
+        
         return jsonify({
-            'stage_revenue': [{
-                'stage': sr[0],
-                'weighted_revenue': float(sr[1] or 0)
-            } for sr in stage_revenue],
-            'collab_revenue': [{
-                'status': cr[0],
-                'total_revenue': float(cr[1] or 0)
-            } for cr in collab_revenue]
+            'stage_revenue': stage_revenue_data,
+            'collab_revenue': collab_revenue_data
         })
     except SQLAlchemyError as e:
+        logger.error(f"Database error in revenue analytics: {str(e)}")
+        return handle_database_error(e, 'revenue analytics')
+    except Exception as e:
+        logger.error(f"Unexpected error in revenue analytics: {str(e)}")
         return handle_database_error(e, 'revenue analytics')
 
 @app.route('/api/analytics/satisfaction')
 def satisfaction_analytics():
     try:
+        logger.info("Fetching satisfaction analytics data")
+        
         satisfaction_scores = db.session.execute(
             text("""
-                SELECT c.name,
-                       AVG(cl.kpi_satisfaction) as avg_satisfaction
+                SELECT 
+                    c.name,
+                    COALESCE(AVG(CASE 
+                        WHEN cl.kpi_satisfaction IS NOT NULL 
+                        THEN cl.kpi_satisfaction
+                        ELSE NULL 
+                    END), 0) as avg_satisfaction,
+                    COUNT(cl.id) as collaboration_count
                 FROM company c
-                JOIN collaboration cl ON c.id = cl.company_id
+                LEFT JOIN collaboration cl ON c.id = cl.company_id
                 GROUP BY c.name
+                HAVING COUNT(cl.id) > 0
+                ORDER BY avg_satisfaction DESC
             """)
         ).fetchall()
         
-        return jsonify([{
+        satisfaction_data = [{
             'company': score[0],
-            'satisfaction': float(score[1] or 0)
-        } for score in satisfaction_scores])
+            'satisfaction': round(float(score[1] or 0), 2),
+            'collaboration_count': int(score[2])
+        } for score in satisfaction_scores]
+        
+        logger.info(f"Satisfaction analytics data: {satisfaction_data}")
+        
+        return jsonify(satisfaction_data)
     except SQLAlchemyError as e:
+        logger.error(f"Database error in satisfaction analytics: {str(e)}")
+        return handle_database_error(e, 'satisfaction analytics')
+    except Exception as e:
+        logger.error(f"Unexpected error in satisfaction analytics: {str(e)}")
         return handle_database_error(e, 'satisfaction analytics')
 
 @app.route('/api/analytics/pipeline')
 def pipeline_analytics():
     try:
+        logger.info("Fetching pipeline analytics data")
+        
         pipeline_stats = db.session.execute(
             text("""
-                SELECT stage,
-                       COUNT(*) as count,
-                       SUM(expected_revenue) as total_value
+                SELECT 
+                    stage,
+                    COUNT(*) as count,
+                    COALESCE(SUM(CASE 
+                        WHEN expected_revenue IS NOT NULL 
+                        THEN expected_revenue
+                        ELSE 0 
+                    END), 0) as total_value,
+                    COALESCE(AVG(probability), 0) as avg_probability
                 FROM opportunity
                 GROUP BY stage
+                ORDER BY stage
             """)
         ).fetchall()
         
-        return jsonify([{
+        pipeline_data = [{
             'stage': stat[0],
             'count': int(stat[1]),
-            'total_value': float(stat[2] or 0)
-        } for stat in pipeline_stats])
+            'total_value': round(float(stat[2] or 0), 2),
+            'avg_probability': round(float(stat[3] or 0), 1)
+        } for stat in pipeline_stats]
+        
+        logger.info(f"Pipeline analytics data: {pipeline_data}")
+        
+        return jsonify(pipeline_data)
     except SQLAlchemyError as e:
+        logger.error(f"Database error in pipeline analytics: {str(e)}")
+        return handle_database_error(e, 'pipeline analytics')
+    except Exception as e:
+        logger.error(f"Unexpected error in pipeline analytics: {str(e)}")
         return handle_database_error(e, 'pipeline analytics')
 
 @app.errorhandler(SQLAlchemyError)
