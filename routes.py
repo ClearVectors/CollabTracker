@@ -1,6 +1,6 @@
 from flask import render_template, request, jsonify, redirect, url_for, send_from_directory, flash, Response
 from werkzeug.utils import secure_filename
-from app import app, db
+from app import app, db, socketio
 from models import Company, Collaboration, Opportunity, Document
 from datetime import datetime
 from sqlalchemy import or_, func, text
@@ -81,7 +81,19 @@ def new_collaboration():
                 kpi_satisfaction=int(request.form['kpi_satisfaction'])
             )
             db.session.add(collab)
-            db.session.flush()  # Get the ID before committing
+            db.session.flush()
+            
+            socketio.emit('collaboration_updated', {
+                'action': 'new',
+                'collaboration': {
+                    'id': collab.id,
+                    'title': collab.title,
+                    'company_name': Company.query.get(collab.company_id).name,
+                    'status': collab.status,
+                    'kpi_satisfaction': collab.kpi_satisfaction
+                }
+            })
+            
             return jsonify({'success': True, 'collaboration_id': collab.id})
     except Exception as e:
         db.session.rollback()
@@ -101,7 +113,20 @@ def new_opportunity():
                 notes=request.form['notes']
             )
             db.session.add(opportunity)
-            db.session.flush()  # Get the ID before committing
+            db.session.flush()
+            
+            socketio.emit('opportunity_updated', {
+                'action': 'new',
+                'opportunity': {
+                    'id': opportunity.id,
+                    'title': opportunity.title,
+                    'company_name': Company.query.get(opportunity.company_id).name,
+                    'stage': opportunity.stage,
+                    'probability': opportunity.probability,
+                    'expected_revenue': opportunity.expected_revenue
+                }
+            })
+            
             return jsonify({'success': True, 'opportunity_id': opportunity.id})
     except Exception as e:
         db.session.rollback()
@@ -116,6 +141,17 @@ def update_opportunity(id):
             opportunity.probability = int(request.form['probability'])
             opportunity.next_meeting_date = datetime.strptime(request.form['next_meeting_date'], '%Y-%m-%d') if request.form['next_meeting_date'] else None
             opportunity.notes = request.form['notes']
+            
+            socketio.emit('opportunity_updated', {
+                'action': 'update',
+                'opportunity': {
+                    'id': opportunity.id,
+                    'title': opportunity.title,
+                    'stage': opportunity.stage,
+                    'probability': opportunity.probability
+                }
+            })
+            
             return jsonify({'success': True})
     except Exception as e:
         db.session.rollback()
@@ -185,11 +221,10 @@ def upload_document():
             )
             
             db.session.add(document)
-            db.session.flush()  # Get the ID before committing
+            db.session.flush()
             return jsonify({'success': True, 'document_id': document.id})
     except Exception as e:
         db.session.rollback()
-        # Clean up the file if it was saved
         if 'file_path' in locals():
             try:
                 os.remove(file_path)
@@ -213,7 +248,7 @@ def company_documents(id):
     try:
         with db.session.begin():
             company = Company.query.get_or_404(id)
-            return render_template('documents.html', company=company)
+        return render_template('documents.html', company=company)
     except Exception as e:
         db.session.rollback()
         flash(f'Error loading company documents: {str(e)}', 'error')
@@ -224,7 +259,7 @@ def collaboration_documents(id):
     try:
         with db.session.begin():
             collaboration = Collaboration.query.get_or_404(id)
-            return render_template('documents.html', collaboration=collaboration)
+        return render_template('documents.html', collaboration=collaboration)
     except Exception as e:
         db.session.rollback()
         flash(f'Error loading collaboration documents: {str(e)}', 'error')

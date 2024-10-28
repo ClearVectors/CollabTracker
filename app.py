@@ -2,6 +2,7 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
+from flask_socketio import SocketIO
 
 class Base(DeclarativeBase):
     pass
@@ -20,6 +21,9 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 # Configure upload folder
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'documents')
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 db.init_app(app)
 
