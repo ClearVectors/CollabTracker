@@ -30,5 +30,5 @@ db.init_app(app)
 with app.app_context():
     import models
     db.create_all()
-
-from routes import *
+    from routes import init_routes
+    app = init_routes(app, db, socketio)
