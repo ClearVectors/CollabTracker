@@ -72,8 +72,9 @@
 
 /* Enhanced search bar styles */
 .search-container {
-    max-width: 500px;
-    min-width: 300px;
+    max-width: 800px;
+    min-width: 400px;
+    flex-grow: 1;
 }
 
 .search-container .input-group {
