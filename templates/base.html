@@ -29,21 +29,16 @@
                 </ul>
                 <div class="d-flex align-items-center">
                     <input type="search" class="form-control me-3" id="searchInput" placeholder="Search companies...">
-                    <div class="dropdown">
-                        <button class="btn btn-primary btn-lg dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-download me-1"></i> Export Data
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{{ url_for('export_companies') }}">
-                                <i class="bi bi-building me-2"></i>Export Companies
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('export_collaborations') }}">
-                                <i class="bi bi-people me-2"></i>Export Collaborations
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('export_opportunities') }}">
-                                <i class="bi bi-graph-up me-2"></i>Export Opportunities
-                            </a></li>
-                        </ul>
+                    <div class="btn-group" role="group" aria-label="Export actions">
+                        <a href="{{ url_for('export_companies') }}" class="btn btn-success me-2">
+                            <i class="bi bi-download me-1"></i> Export Companies
+                        </a>
+                        <a href="{{ url_for('export_collaborations') }}" class="btn btn-primary me-2">
+                            <i class="bi bi-download me-1"></i> Export Collaborations
+                        </a>
+                        <a href="{{ url_for('export_opportunities') }}" class="btn btn-purple">
+                            <i class="bi bi-download me-1"></i> Export Opportunities
+                        </a>
                     </div>
                 </div>
             </div>

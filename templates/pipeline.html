@@ -4,9 +4,14 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Pipeline Overview</h2>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newOpportunityModal">
-            Add New Opportunity
-        </button>
+        <div>
+            <a href="{{ url_for('export_opportunities') }}" class="btn btn-purple me-2">
+                <i class="bi bi-download me-1"></i> Export Pipeline
+            </a>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newOpportunityModal">
+                Add New Opportunity
+            </button>
+        </div>
     </div>
 
     <div class="row">

@@ -50,6 +50,26 @@
     border: 2px dashed var(--bs-primary);
 }
 
+/* Custom button styles */
+.btn-purple {
+    color: #fff;
+    background-color: #6f42c1;
+    border-color: #6f42c1;
+}
+
+.btn-purple:hover {
+    color: #fff;
+    background-color: #5d36a4;
+    border-color: #59339d;
+}
+
+.btn-purple:focus {
+    color: #fff;
+    background-color: #5d36a4;
+    border-color: #59339d;
+    box-shadow: 0 0 0 0.25rem rgba(111, 66, 193, 0.5);
+}
+
 /* Enhanced dropdown styles */
 .dropdown-menu {
     z-index: 1030;
