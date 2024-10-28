@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fortune 100 Collaboration Tracker</title>
     <link rel="stylesheet" href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body>
@@ -27,15 +28,21 @@
                     </li>
                 </ul>
                 <div class="d-flex align-items-center">
-                    <input type="search" class="form-control me-2" id="searchInput" placeholder="Search companies...">
+                    <input type="search" class="form-control me-3" id="searchInput" placeholder="Search companies...">
                     <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Export Data
+                        <button class="btn btn-primary btn-lg dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-download me-1"></i> Export Data
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{{ url_for('export_companies') }}">Export Companies</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('export_collaborations') }}">Export Collaborations</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('export_opportunities') }}">Export Opportunities</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('export_companies') }}">
+                                <i class="bi bi-building me-2"></i>Export Companies
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('export_collaborations') }}">
+                                <i class="bi bi-people me-2"></i>Export Collaborations
+                            </a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('export_opportunities') }}">
+                                <i class="bi bi-graph-up me-2"></i>Export Opportunities
+                            </a></li>
                         </ul>
                     </div>
                 </div>
