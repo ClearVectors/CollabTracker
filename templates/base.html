@@ -26,8 +26,18 @@
                         <a class="nav-link" href="{{ url_for('analytics_dashboard') }}">Analytics</a>
                     </li>
                 </ul>
-                <div class="d-flex">
+                <div class="d-flex align-items-center">
                     <input type="search" class="form-control me-2" id="searchInput" placeholder="Search companies...">
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Export Data
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('export_companies') }}">Export Companies</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('export_collaborations') }}">Export Collaborations</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('export_opportunities') }}">Export Opportunities</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
