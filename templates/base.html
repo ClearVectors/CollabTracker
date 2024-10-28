@@ -26,28 +26,19 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('analytics_dashboard') }}">Analytics</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('advanced_search_page') }}">
-                            <i class="bi bi-search"></i> Advanced Search
-                        </a>
-                    </li>
                 </ul>
                 <div class="d-flex align-items-center">
-                    <div class="search-container me-3">
-                        <input type="search" class="form-control" id="searchInput" placeholder="Quick search...">
-                        <div class="search-results" id="searchResults"></div>
-                    </div>
-                    <div class="dropdown">
-                        <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                            <i class="bi bi-download me-1"></i> Export Data
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{{ url_for('export_all') }}">Export All Data</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('export_companies') }}">Companies Only</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('export_collaborations') }}">Collaborations Only</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('export_opportunities') }}">Opportunities Only</a></li>
-                        </ul>
+                    <input type="search" class="form-control me-3" id="searchInput" placeholder="Search companies...">
+                    <div class="btn-group" role="group" aria-label="Export actions">
+                        <a href="{{ url_for('export_companies') }}" class="btn btn-success me-2">
+                            <i class="bi bi-download me-1"></i> Export Companies
+                        </a>
+                        <a href="{{ url_for('export_collaborations') }}" class="btn btn-primary me-2">
+                            <i class="bi bi-download me-1"></i> Export Collaborations
+                        </a>
+                        <a href="{{ url_for('export_opportunities') }}" class="btn btn-purple">
+                            <i class="bi bi-download me-1"></i> Export Opportunities
+                        </a>
                     </div>
                 </div>
             </div>
