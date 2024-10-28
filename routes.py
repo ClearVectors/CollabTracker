@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, redirect, url_for, send_from_directory, flash
+from flask import render_template, request, jsonify, redirect, url_for, send_from_directory, flash, Response
 from werkzeug.utils import secure_filename
 from app import app, db
 from models import Company, Collaboration, Opportunity, Document
@@ -6,10 +6,20 @@ from datetime import datetime
 from sqlalchemy import or_, func
 import os
 import magic
+import csv
+import io
+from contextlib import closing
 
 def allowed_file(filename):
     ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt', 'rtf'}
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def generate_csv(rows, fieldnames):
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(rows)
+    return output.getvalue()
 
 @app.route('/')
 def dashboard():
@@ -213,3 +223,79 @@ def pipeline_analytics():
         'count': int(stat[1]),
         'total_value': float(stat[2] or 0)
     } for stat in pipeline_stats])
+
+@app.route('/export/companies')
+def export_companies():
+    try:
+        with closing(db.session.begin()) as transaction:
+            companies = Company.query.all()
+            rows = [{
+                'name': company.name,
+                'industry': company.industry,
+                'contact_email': company.contact_email,
+                'contact_phone': company.contact_phone
+            } for company in companies]
+
+        output = generate_csv(rows, ['name', 'industry', 'contact_email', 'contact_phone'])
+        
+        return Response(
+            output,
+            mimetype='text/csv',
+            headers={'Content-Disposition': 'attachment; filename=companies.csv'}
+        )
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to export companies: {str(e)}'}), 500
+
+@app.route('/export/collaborations')
+def export_collaborations():
+    try:
+        with closing(db.session.begin()) as transaction:
+            collaborations = Collaboration.query.all()
+            rows = [{
+                'title': collab.title,
+                'company_name': collab.company.name,
+                'status': collab.status,
+                'start_date': collab.start_date.strftime('%Y-%m-%d') if collab.start_date else '',
+                'end_date': collab.end_date.strftime('%Y-%m-%d') if collab.end_date else '',
+                'revenue': collab.kpi_revenue,
+                'satisfaction': collab.kpi_satisfaction
+            } for collab in collaborations]
+
+        output = generate_csv(rows, ['title', 'company_name', 'status', 'start_date', 
+                                   'end_date', 'revenue', 'satisfaction'])
+        
+        return Response(
+            output,
+            mimetype='text/csv',
+            headers={'Content-Disposition': 'attachment; filename=collaborations.csv'}
+        )
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to export collaborations: {str(e)}'}), 500
+
+@app.route('/export/opportunities')
+def export_opportunities():
+    try:
+        with closing(db.session.begin()) as transaction:
+            opportunities = Opportunity.query.all()
+            rows = [{
+                'title': opp.title,
+                'company_name': opp.company.name,
+                'stage': opp.stage,
+                'expected_revenue': opp.expected_revenue,
+                'probability': opp.probability,
+                'next_meeting_date': opp.next_meeting_date.strftime('%Y-%m-%d') if opp.next_meeting_date else ''
+            } for opp in opportunities]
+
+        output = generate_csv(rows, ['title', 'company_name', 'stage', 'expected_revenue', 
+                                   'probability', 'next_meeting_date'])
+        
+        return Response(
+            output,
+            mimetype='text/csv',
+            headers={'Content-Disposition': 'attachment; filename=opportunities.csv'}
+        )
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': f'Failed to export opportunities: {str(e)}'}), 500
