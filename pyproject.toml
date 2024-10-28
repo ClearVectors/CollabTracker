@@ -12,4 +12,6 @@ dependencies = [
     "python-magic>=0.4.27",
     "flask-socketio>=5.4.1",
     "eventlet>=0.37.0",
+    "pandas>=2.2.3",
+    "xlsxwriter>=3.2.0",
 ]
